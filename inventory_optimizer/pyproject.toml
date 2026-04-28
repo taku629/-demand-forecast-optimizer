@@ -46,7 +46,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN"]
-"app.py" = ["ANN", "E501"]  # Streamlit UIコードは行長・型注釈を緩和
+"app.py" = ["ANN", "E501", "E402", "I001"]  # sys.path操作でimportブロックが分断されるため緩和
 
 [tool.mypy]
 python_version = "3.11"

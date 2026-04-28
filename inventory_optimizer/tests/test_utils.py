@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 
 import pandas as pd
@@ -63,7 +62,8 @@ class TestBuildRecommendationTable:
             holding_cost=10.0,
             order_fixed_cost=5000.0,
         )
-        assert set(table.columns) == {"週", "発注量 (個)", "予測需要 (個)", "予想在庫 (個)", "週次コスト (円)"}
+        expected_cols = {"週", "発注量 (個)", "予測需要 (個)", "予想在庫 (個)", "週次コスト (円)"}
+        assert set(table.columns) == expected_cols
 
     def test_row_count(self) -> None:
         dates = pd.date_range("2025-01-05", periods=4, freq="W-SUN")
