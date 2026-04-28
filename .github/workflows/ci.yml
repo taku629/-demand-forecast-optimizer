@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        working-directory: inventory_optimizer
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov ruff mypy pandas-stubs
+
+      - name: Lint (ruff)
+        working-directory: inventory_optimizer
+        run: ruff check src/ tests/ app.py
+
+      - name: Type check (mypy)
+        working-directory: inventory_optimizer
+        run: mypy src/ --ignore-missing-imports
+
+      - name: Generate sample data
+        working-directory: inventory_optimizer
+        run: python data/generate_sample_data.py
+
+      - name: Run tests with coverage
+        working-directory: inventory_optimizer
+        run: pytest tests/ -v --tb=short --cov=src --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: inventory_optimizer/coverage.xml
+          fail_ci_if_error: false

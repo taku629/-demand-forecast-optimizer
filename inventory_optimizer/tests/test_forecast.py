@@ -2,28 +2,15 @@
 
 from __future__ import annotations
 
+import tempfile
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from data.generate_sample_data import generate_sales_data
-from src.forecast import DemandForecaster, _build_features, FEATURE_COLS
-
-
-@pytest.fixture(scope="module")
-def sample_df() -> pd.DataFrame:
-    return generate_sales_data(n_weeks=52, random_seed=42)
-
-
-@pytest.fixture(scope="module")
-def fitted_forecaster(sample_df: pd.DataFrame) -> DemandForecaster:
-    fc = DemandForecaster()
-    fc.fit(sample_df)
-    return fc
+from src.forecast import DemandForecaster, FEATURE_COLS, _build_features
 
 
 class TestGenerateSalesData:
@@ -53,8 +40,7 @@ class TestBuildFeatures:
 
     def test_lag_shift(self, sample_df: pd.DataFrame) -> None:
         sku_df = sample_df[sample_df["sku"] == "商品A"].copy()
-        featured = _build_features(sku_df).dropna(subset=["lag_1"])
-        # lag_1 should equal previous row's sales
+        featured = _build_features(sku_df).dropna(subset=["lag_1"]).reset_index(drop=True)
         for i in range(1, len(featured)):
             assert featured["lag_1"].iloc[i] == featured["sales"].iloc[i - 1]
 
@@ -68,8 +54,7 @@ class TestDemandForecaster:
     def test_fit_creates_models_for_all_skus(
         self, fitted_forecaster: DemandForecaster, sample_df: pd.DataFrame
     ) -> None:
-        skus = sample_df["sku"].unique().tolist()
-        for sku in skus:
+        for sku in sample_df["sku"].unique():
             assert sku in fitted_forecaster._models
 
     def test_predict_returns_series(self, fitted_forecaster: DemandForecaster) -> None:
@@ -88,8 +73,7 @@ class TestDemandForecaster:
 
     def test_predict_n_weeks_length(self, fitted_forecaster: DemandForecaster) -> None:
         for n in [1, 4, 8]:
-            forecast = fitted_forecaster.predict("商品A", n_weeks=n)
-            assert len(forecast) == n
+            assert len(fitted_forecaster.predict("商品A", n_weeks=n)) == n
 
     def test_predict_dates_are_future(self, fitted_forecaster: DemandForecaster) -> None:
         history = fitted_forecaster.get_history("商品A")
@@ -108,8 +92,42 @@ class TestDemandForecaster:
         df = fitted_forecaster.predict_with_confidence("商品A")
         assert (df["lower"] <= df["upper"]).all()
 
+    def test_predict_with_confidence_lower_non_negative(
+        self, fitted_forecaster: DemandForecaster
+    ) -> None:
+        df = fitted_forecaster.predict_with_confidence("商品A")
+        assert (df["lower"] >= 0).all()
+
     def test_get_feature_importance_shape(self, fitted_forecaster: DemandForecaster) -> None:
         df = fitted_forecaster.get_feature_importance()
         assert "feature" in df.columns
         assert "importance" in df.columns
         assert len(df) == len(FEATURE_COLS) * len(fitted_forecaster._models)
+
+    def test_cross_validate_returns_cv_score(self, fitted_forecaster: DemandForecaster) -> None:
+        score = fitted_forecaster.cross_validate("商品A", n_splits=3)
+        assert score["sku"] == "商品A"
+        assert score["n_splits"] == 3
+        assert score["rmse_mean"] > 0
+        assert score["rmse_std"] >= 0
+        assert score["mae_mean"] > 0
+
+    def test_cross_validate_rmse_reasonable(self, fitted_forecaster: DemandForecaster) -> None:
+        """RMSE が平均販売数の50%以下であること（簡易品質チェック）。"""
+        history = fitted_forecaster.get_history("商品A")
+        mean_sales = history["sales"].mean()
+        score = fitted_forecaster.cross_validate("商品A", n_splits=3)
+        assert score["rmse_mean"] < mean_sales * 0.5
+
+    def test_save_and_load(
+        self, fitted_forecaster: DemandForecaster, sample_df: pd.DataFrame
+    ) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "forecaster.pkl"
+            fitted_forecaster.save(path)
+            loaded = DemandForecaster.load(path)
+
+        # 同じ予測値が返ること
+        original = fitted_forecaster.predict("商品A", n_weeks=4)
+        restored = loaded.predict("商品A", n_weeks=4)
+        assert np.allclose(original.values, restored.values, rtol=1e-5)
