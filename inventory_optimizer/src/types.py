@@ -22,7 +22,7 @@ class OptimizationResult(TypedDict):
     total_cost: float
     cost_breakdown: CostBreakdown
     status: str
-    dates: list
+    dates: list[object]
 
 
 class CVScore(TypedDict):

@@ -156,7 +156,8 @@ class DemandForecaster:
             lag_1 = sales_buffer[-1] if n >= 1 else 0.0
             lag_4 = sales_buffer[-4] if n >= 4 else float(np.mean(sales_buffer))
             lag_8 = sales_buffer[-8] if n >= 8 else float(np.mean(sales_buffer))
-            rolling_mean_4 = float(np.mean(sales_buffer[-4:])) if n >= 4 else float(np.mean(sales_buffer))
+            buf_tail = sales_buffer[-4:] if n >= 4 else sales_buffer
+            rolling_mean_4 = float(np.mean(buf_tail))
 
             row = pd.DataFrame(
                 [
@@ -255,7 +256,7 @@ class DemandForecaster:
         records = []
         for sku, model in self._models.items():
             importances = model.feature_importances_
-            for feat, imp in zip(FEATURE_COLS, importances):
+            for feat, imp in zip(FEATURE_COLS, importances, strict=True):
                 records.append({"feature": feat, "sku": sku, "importance": imp})
         return pd.DataFrame(records)
 
@@ -279,10 +280,11 @@ class DemandForecaster:
             path: 保存先ファイルパス（.pkl 推奨）。
         """
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-        joblib.dump({"models": self._models, "history": self._history, "params": self._params}, path)
+        payload = {"models": self._models, "history": self._history, "params": self._params}
+        joblib.dump(payload, path)
 
     @classmethod
-    def load(cls, path: str | Path) -> "DemandForecaster":
+    def load(cls, path: str | Path) -> DemandForecaster:
         """保存済みモデルを読み込む。
 
         Args:

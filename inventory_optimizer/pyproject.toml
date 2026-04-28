@@ -41,13 +41,12 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "ANN"]
 ignore = [
-    "ANN101",  # self type annotation
-    "ANN102",  # cls type annotation
     "ANN401",  # Any type
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN"]
+"app.py" = ["ANN", "E501"]  # Streamlit UIコードは行長・型注釈を緩和
 
 [tool.mypy]
 python_version = "3.11"

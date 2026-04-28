@@ -45,7 +45,7 @@ def format_currency(value: float) -> str:
 
 
 def build_recommendation_table(
-    dates: list,
+    dates: list[object],
     order_schedule: list[int],
     demand_forecast: list[float],
     stock_levels: list[int],

@@ -5,8 +5,8 @@ PuLPによる整数線形計画法で最適発注スケジュールを算出す�
 
 from __future__ import annotations
 
-import pulp
 import pandas as pd
+import pulp
 
 from src.types import CostBreakdown, OptimizationResult
 
@@ -134,7 +134,7 @@ class InventoryOptimizer:
         stockout_penalty: float,
         warehouse_capacity: int,
         min_order_lot: int,
-        dates: list,
+        dates: list[object],
         status: str,
     ) -> OptimizationResult:
         """最適化失敗時の安全在庫ベースの発注スケジュール。"""

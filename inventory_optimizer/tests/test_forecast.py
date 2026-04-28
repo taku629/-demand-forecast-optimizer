@@ -9,8 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from data.generate_sample_data import generate_sales_data
-from src.forecast import DemandForecaster, FEATURE_COLS, _build_features
+from src.forecast import FEATURE_COLS, DemandForecaster, _build_features
 
 
 class TestGenerateSalesData:

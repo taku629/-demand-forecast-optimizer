@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import pandas as pd
-import pytest
 
 from src.optimizer import InventoryOptimizer
-from src.types import OptimizationResult
 
 
 class TestInventoryOptimizer:
@@ -16,7 +14,10 @@ class TestInventoryOptimizer:
         result = InventoryOptimizer().optimize(
             demand_forecast=simple_demand, current_stock=50, **default_optimizer_params
         )
-        required_keys = {"order_schedule", "stock_levels", "total_cost", "cost_breakdown", "status", "dates"}
+        required_keys = {
+            "order_schedule", "stock_levels", "total_cost",
+            "cost_breakdown", "status", "dates",
+        }
         assert required_keys <= set(result.keys())
 
     def test_return_type_is_typed_dict(
@@ -51,7 +52,8 @@ class TestInventoryOptimizer:
         result = InventoryOptimizer().optimize(
             demand_forecast=simple_demand, current_stock=50, **default_optimizer_params
         )
-        assert all(s <= default_optimizer_params["warehouse_capacity"] for s in result["stock_levels"])
+        cap = default_optimizer_params["warehouse_capacity"]
+        assert all(s <= cap for s in result["stock_levels"])
 
     def test_order_qty_non_negative(
         self, simple_demand: pd.Series, default_optimizer_params: dict
@@ -101,8 +103,12 @@ class TestInventoryOptimizer:
         dates = pd.date_range("2025-01-05", periods=4, freq="W-SUN")
         demand = pd.Series([50, 50, 50, 50], index=dates)
         optimizer = InventoryOptimizer()
-        result_low = optimizer.optimize(demand_forecast=demand, current_stock=0, **default_optimizer_params)
-        result_high = optimizer.optimize(demand_forecast=demand, current_stock=400, **default_optimizer_params)
+        result_low = optimizer.optimize(
+            demand_forecast=demand, current_stock=0, **default_optimizer_params
+        )
+        result_high = optimizer.optimize(
+            demand_forecast=demand, current_stock=400, **default_optimizer_params
+        )
         assert sum(result_high["order_schedule"]) <= sum(result_low["order_schedule"])
 
     def test_high_stockout_penalty_reduces_shortage(self, default_optimizer_params: dict) -> None:
@@ -111,8 +117,12 @@ class TestInventoryOptimizer:
         optimizer = InventoryOptimizer()
         params_low = {**default_optimizer_params, "stockout_penalty": 100.0}
         params_high = {**default_optimizer_params, "stockout_penalty": 5000.0}
-        result_low = optimizer.optimize(demand_forecast=demand, current_stock=0, **params_low)
-        result_high = optimizer.optimize(demand_forecast=demand, current_stock=0, **params_high)
+        result_low = optimizer.optimize(
+            demand_forecast=demand, current_stock=0, **params_low
+        )
+        result_high = optimizer.optimize(
+            demand_forecast=demand, current_stock=0, **params_high
+        )
         shortage_low = sum(result_low.get("shortage_levels", [0] * 4))
         shortage_high = sum(result_high.get("shortage_levels", [0] * 4))
         assert shortage_high <= shortage_low
