@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Any, TypedDict
 
 
 class CostBreakdown(TypedDict):
@@ -22,7 +22,7 @@ class OptimizationResult(TypedDict):
     total_cost: float
     cost_breakdown: CostBreakdown
     status: str
-    dates: list[object]
+    dates: list[Any]
 
 
 class CVScore(TypedDict):

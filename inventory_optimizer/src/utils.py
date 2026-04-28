@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -45,7 +46,7 @@ def format_currency(value: float) -> str:
 
 
 def build_recommendation_table(
-    dates: list[object],
+    dates: list[Any],
     order_schedule: list[int],
     demand_forecast: list[float],
     stock_levels: list[int],
